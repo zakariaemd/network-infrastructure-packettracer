@@ -1,0 +1,116 @@
+! ============================================
+! CONFIGURATION ROUTEUR R1 — Cisco 2911
+! Rôle : Routeur Principal + NAT + DHCP
+! ============================================
+
+hostname R1
+enable secret cisco123
+service password-encryption
+no ip domain-lookup
+
+! ============================================
+! INTERFACES
+! ============================================
+
+! Interface WAN (vers Internet simulé)
+interface GigabitEthernet0/0
+ description WAN-INTERNET
+ ip address 203.0.113.1 255.255.255.252
+ ip nat outside
+ no shutdown
+
+! Interface LAN (vers SW-CORE)
+interface GigabitEthernet0/1
+ description LAN-CORE
+ ip address 10.0.0.1 255.255.255.252
+ ip nat inside
+ no shutdown
+
+! Interface vers R2 (branche)
+interface GigabitEthernet0/2
+ description WAN-R2-BRANCH
+ ip address 10.0.0.5 255.255.255.252
+ no shutdown
+
+! ============================================
+! ROUTAGE STATIQUE
+! ============================================
+
+! Route par défaut vers Internet
+ip route 0.0.0.0 0.0.0.0 203.0.113.2
+
+! Route vers réseau branche via R2
+ip route 192.168.40.0 255.255.255.0 10.0.0.6
+
+! Routes vers VLANs via SW-CORE
+ip route 192.168.10.0 255.255.255.0 10.0.0.2
+ip route 192.168.20.0 255.255.255.0 10.0.0.2
+ip route 192.168.30.0 255.255.255.0 10.0.0.2
+
+! ============================================
+! NAT (PAT — Overload)
+! ============================================
+
+access-list 1 permit 192.168.0.0 0.0.255.255
+ip nat inside source list 1 interface GigabitEthernet0/0 overload
+
+! ============================================
+! DHCP SERVER
+! ============================================
+
+! Exclusions
+ip dhcp excluded-address 192.168.10.1 192.168.10.9
+ip dhcp excluded-address 192.168.20.1 192.168.20.9
+ip dhcp excluded-address 192.168.30.1 192.168.30.9
+ip dhcp excluded-address 192.168.40.1 192.168.40.9
+
+! Pool VLAN 10 — Admin
+ip dhcp pool VLAN10-ADMIN
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 8.8.8.8 8.8.4.4
+ lease 7
+
+! Pool VLAN 20 — Dev
+ip dhcp pool VLAN20-DEV
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 8.8.8.8 8.8.4.4
+ lease 7
+
+! Pool VLAN 30 — RH
+ip dhcp pool VLAN30-RH
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 8.8.8.8 8.8.4.4
+ lease 7
+
+! Pool VLAN 40 — Direction
+ip dhcp pool VLAN40-DIRECTION
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.1
+ dns-server 8.8.8.8 8.8.4.4
+ lease 7
+
+! ============================================
+! SÉCURITÉ
+! ============================================
+
+line console 0
+ password cisco
+ login
+ exec-timeout 5 0
+
+line vty 0 4
+ password cisco
+ login
+ transport input telnet ssh
+
+banner motd ^
+==========================================
+   ACCES AUTORISE UNIQUEMENT
+   Toute intrusion sera poursuivie
+==========================================
+^
+
+end
