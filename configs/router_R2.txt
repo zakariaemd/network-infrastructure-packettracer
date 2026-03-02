@@ -1,0 +1,36 @@
+! ============================================
+! CONFIGURATION ROUTEUR R2 — Branche
+! ============================================
+
+hostname R2
+enable secret cisco123
+service password-encryption
+no ip domain-lookup
+
+interface GigabitEthernet0/0
+ description WAN-vers-R1
+ ip address 10.0.0.6 255.255.255.252
+ no shutdown
+
+interface GigabitEthernet0/1
+ description LAN-DIRECTION
+ ip address 10.0.0.9 255.255.255.252
+ no shutdown
+
+! Route par défaut vers R1
+ip route 0.0.0.0 0.0.0.0 10.0.0.5
+
+! Route vers VLANs siège via R1
+ip route 192.168.10.0 255.255.255.0 10.0.0.5
+ip route 192.168.20.0 255.255.255.0 10.0.0.5
+ip route 192.168.30.0 255.255.255.0 10.0.0.5
+
+line console 0
+ password cisco
+ login
+
+line vty 0 4
+ password cisco
+ login
+
+end
